@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getShortLink, incrementClickCount, recordClickEvent } from '../services/urlService';
 
@@ -10,8 +10,13 @@ const RedirectHandler = () => {
     const { code } = useParams();
     const navigate = useNavigate();
 
+    const processingRef = useRef(false);
+
     useEffect(() => {
         const handleRedirect = async () => {
+            if (processingRef.current) return;
+            processingRef.current = true;
+
             if (!code) {
                 navigate('/');
                 return;
@@ -31,15 +36,17 @@ const RedirectHandler = () => {
                 const referrer = document.referrer || 'Direct';
                 const userAgent = navigator.userAgent;
 
-                // Record click event (fire and forget)
-                recordClickEvent(code, referrer, userAgent).catch(err =>
-                    console.error('Failed to record click:', err)
-                );
-
-                // Increment click count (fire and forget)
-                incrementClickCount(link.id).catch(err =>
-                    console.error('Failed to increment count:', err)
-                );
+                // Record analytics and increment count
+                // We await these to ensure they are recorded before the page unloads
+                try {
+                    await Promise.all([
+                        recordClickEvent(code, referrer, userAgent),
+                        incrementClickCount(link.id)
+                    ]);
+                } catch (err) {
+                    console.error('Failed to record analytics:', err);
+                    // Continue to redirect even if analytics fail
+                }
 
                 // Redirect to original URL
                 window.location.href = link.originalUrl;
