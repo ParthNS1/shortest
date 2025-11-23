@@ -57,8 +57,13 @@ export const getAnalytics = async (shortCode) => {
 
                 // Sort in memory instead
                 clicks.sort((a, b) => {
-                    const timeA = a.timestamp?.toMillis?.() || 0;
-                    const timeB = b.timestamp?.toMillis?.() || 0;
+                    // Handle both Firestore Timestamp objects and numeric timestamps
+                    const timeA = typeof a.timestamp === 'number'
+                        ? a.timestamp
+                        : (a.timestamp?.toMillis?.() || 0);
+                    const timeB = typeof b.timestamp === 'number'
+                        ? b.timestamp
+                        : (b.timestamp?.toMillis?.() || 0);
                     return timeB - timeA;
                 });
 

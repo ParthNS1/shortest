@@ -29,11 +29,16 @@ export const isValidUrl = (url) => {
 
 /**
  * Formats a timestamp to a readable date string
- * @param {number} timestamp - Unix timestamp
+ * @param {number|Object} timestamp - Unix timestamp or Firestore Timestamp
  * @returns {string} Formatted date string
  */
 export const formatDate = (timestamp) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
+    // Handle Firestore Timestamp objects
+    const time = typeof timestamp === 'number'
+        ? timestamp
+        : (timestamp?.toMillis?.() || timestamp);
+
+    return new Date(time).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
@@ -42,11 +47,16 @@ export const formatDate = (timestamp) => {
 
 /**
  * Formats a timestamp to a readable date and time string
- * @param {number} timestamp - Unix timestamp
+ * @param {number|Object} timestamp - Unix timestamp or Firestore Timestamp
  * @returns {string} Formatted date and time string
  */
 export const formatDateTime = (timestamp) => {
-    return new Date(timestamp).toLocaleString('en-US', {
+    // Handle Firestore Timestamp objects
+    const time = typeof timestamp === 'number'
+        ? timestamp
+        : (timestamp?.toMillis?.() || timestamp);
+
+    return new Date(time).toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',

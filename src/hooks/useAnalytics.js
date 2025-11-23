@@ -1,15 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAnalytics } from '../services/analyticsService';
 
 /**
  * Custom hook for fetching and managing analytics data
  * @param {string} shortCode - Short code to get analytics for
- * @returns {Object} Analytics state
+ * @returns {Object} Analytics state with refresh function
  */
 export const useAnalytics = (shortCode) => {
     const [analytics, setAnalytics] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    const refresh = useCallback(() => {
+        setRefreshTrigger(prev => prev + 1);
+    }, []);
 
     useEffect(() => {
         if (!shortCode) {
@@ -32,11 +37,12 @@ export const useAnalytics = (shortCode) => {
         };
 
         fetchAnalytics();
-    }, [shortCode]);
+    }, [shortCode, refreshTrigger]);
 
     return {
         analytics,
         loading,
-        error
+        error,
+        refresh
     };
 };
