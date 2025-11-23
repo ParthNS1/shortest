@@ -114,7 +114,45 @@ service cloud.firestore {
 
 ```
 
-### 4. Run Development Server
+### 4. Set Up Firestore Indexes
+
+The app requires a composite index for analytics queries. You have two options:
+
+**Option A: Automatic Setup (Recommended)**
+
+Deploy the indexes using Firebase CLI:
+
+```bash
+# Install Firebase CLI if you haven't already
+npm install -g firebase-tools
+
+# Login to Firebase
+firebase login
+
+# Initialize Firebase (select Firestore)
+firebase init firestore
+
+# Deploy the indexes
+firebase deploy --only firestore:indexes
+```
+
+**Option B: Manual Setup**
+
+If you see an index error in the console, click the provided link to create the index automatically, or manually create it in the Firebase Console:
+
+1. Go to [Firebase Console](https://console.firebase.google.com)
+2. Select your project
+3. Navigate to **Firestore Database** → **Indexes**
+4. Click **Create Index**
+5. Set:
+   - Collection ID: `clicks`
+   - Field 1: `shortCode` (Ascending)
+   - Field 2: `timestamp` (Descending)
+6. Click **Create**
+
+> **Note:** The app includes fallback logic, so it will work even without the index, but performance will be better with it.
+
+### 5. Run Development Server
 
 ```bash
 npm run dev
@@ -122,7 +160,7 @@ npm run dev
 
 The app will be available at `http://localhost:5173`
 
-### 5. Build for Production
+### 6. Build for Production
 
 ```bash
 npm run build

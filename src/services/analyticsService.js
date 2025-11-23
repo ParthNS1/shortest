@@ -10,11 +10,20 @@ import { getDeviceType, formatDate } from '../utils/helpers';
 
 /**
  * Get analytics data for a specific short code
+ * 
+ * This function queries Firestore for click events. It requires a composite index
+ * on (shortCode, timestamp). If the index doesn't exist, it automatically falls back
+ * to a simpler query and sorts the results in memory.
+ * 
+ * To create the index, run: firebase deploy --only firestore:indexes
+ * Or click the link in the Firebase Console error message.
+ * 
  * @param {string} shortCode - Short code to get analytics for
- * @returns {Promise<Object>} Analytics data
+ * @returns {Promise<Object>} Analytics data with totalClicks, clicksOverTime, referrers, and devices
  */
 export const getAnalytics = async (shortCode) => {
     try {
+        // Try to query with ordering (requires composite index)
         const q = query(
             collection(db, COLLECTIONS.CLICKS),
             where('shortCode', '==', shortCode),
@@ -29,8 +38,51 @@ export const getAnalytics = async (shortCode) => {
 
         return processAnalyticsData(clicks);
     } catch (error) {
+        // If index is missing, fall back to query without ordering
+        if (error.code === 'failed-precondition' || error.message?.includes('index')) {
+            console.warn('Firestore index not found, using fallback query');
+
+            try {
+                // Fallback query without ordering
+                const fallbackQuery = query(
+                    collection(db, COLLECTIONS.CLICKS),
+                    where('shortCode', '==', shortCode)
+                );
+
+                const snapshot = await getDocs(fallbackQuery);
+                const clicks = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data()
+                }));
+
+                // Sort in memory instead
+                clicks.sort((a, b) => {
+                    const timeA = a.timestamp?.toMillis?.() || 0;
+                    const timeB = b.timestamp?.toMillis?.() || 0;
+                    return timeB - timeA;
+                });
+
+                return processAnalyticsData(clicks);
+            } catch (fallbackError) {
+                console.error('Error in fallback query:', fallbackError);
+                // Return empty analytics data instead of throwing
+                return {
+                    totalClicks: 0,
+                    clicksOverTime: [],
+                    referrers: [],
+                    devices: []
+                };
+            }
+        }
+
         console.error('Error getting analytics:', error);
-        throw error;
+        // Return empty analytics data instead of throwing
+        return {
+            totalClicks: 0,
+            clicksOverTime: [],
+            referrers: [],
+            devices: []
+        };
     }
 };
 
